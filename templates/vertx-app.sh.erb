@@ -1,0 +1,76 @@
+#!/bin/sh
+
+### BEGIN INIT INFO
+# Provides:          <% @user_name %>
+# Required-Start:
+# Required-Stop:
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 6
+# Short-Description: vertx web app
+# Description:       vertx web app using start-stop-daemon
+### END INIT INFO
+
+DESC="vertx web app"
+NAME=<%= @app_name %>
+PID_FILE=/var/run/$NAME.pid
+PATH=/sbin:/bin:/usr/sbin:/usr/bin:/home/vagrant/.gvm/bin:/home/vagrant/.gvm/vertx/current/bin
+
+SSD=start-stop-daemon
+
+VERTX_CMD="/home/vagrant/.gvm/vertx/current/bin/vertx"
+VERTX_OPTS="run App.groovy -conf conf.json"
+
+test -x $VERTX_CMD || exit 0
+
+if [ -e $PID_FILE ]; then
+    PID=`cat $PID_FILE`
+    if ! kill -0 $PID > /dev/null 2>&1; then
+        echo "Removing stale $PID_FILE"
+        rm $PID_FILE
+    fi
+fi
+
+d_start() {
+    $SSD --start --pidfile $PID_FILE --make-pidfile --background -d /opt/app/ --exec "$VERTX_CMD" -- $VERTX_OPTS
+    RETURN_VALUE=$?
+    return $RETURN_VALUE
+}
+
+d_stop() {
+    $SSD --stop --pidfile $PID_FILE --signal INT --retry 5
+    test x$? = x0 && rm $PID_FILE
+    RETURN_VALUE=$?
+    return $RETURN_VALUE
+}
+
+case $1 in
+    start)
+        echo "Starting $DESC: $NAME"
+        d_start
+        ;;
+    stop)
+        echo "Stopping $DESC: $NAME"
+        d_stop
+        ;;
+    restart)
+        echo "Restarting $DESC: $NAME"
+        d_stop
+        sleep 1
+        d_start
+        ;;
+    status)
+        if [ -e $PID_FILE ]; then
+            echo "running $NAME ..."
+            exit 0
+        else
+            echo "$NAME stop"
+            exit 1
+        fi
+        ;;
+    *)
+        echo "usage: $NAME {start|stop|status|restart}"
+        exit 1
+        ;;
+esac
+
+exit 0

@@ -11,7 +11,7 @@ class gvm {
 
   package { ['unzip', 'curl', 'bash']:
     ensure => installed,
-    require => Exec['apt-get-update'];
+    require => Exec['apt-get-update'],
   }
 
   exec { "intall":
@@ -22,12 +22,12 @@ class gvm {
     path => ["/usr/bin", "/usr/sbin", "/bin"],
     unless => "test -e $gvm_etc_config",
     before => Exec['selfupdate'],
-    require => [ 
-      Class['java'], 
-      Package['unzip'], 
+    require => [
+      Class['java'],
+      Package['unzip'],
       Package['curl'],
-      Package['bash'],
-    ],
+      Package['bash']
+    ]
   }
 
   exec { "selfupdate":
@@ -51,7 +51,6 @@ class vertx {
     user => "vagrant",
     logoutput => true,
     path => ["/usr/bin", "/usr/sbin", "/bin", "/home/vagrant/.gvm/bin"],
-    returns => ['1'],
     unless => "test -e /home/vagrant/.gvm/vertx/current",
     require => Exec['selfupdate'],
   }
@@ -59,3 +58,59 @@ class vertx {
 }
 
 include vertx
+
+class deploy {
+
+  $user_name = 'World'
+  $app_name = 'hello_world'
+
+  file { [ '/opt/app', '/opt/app/webapp' ]:
+    owner   => 'vagrant',
+    group   => 'vagrant',
+    mode    => '0755',
+    ensure => directory
+  }
+
+  file {
+    "config":
+      path    => "/opt/app/conf.json",
+      owner   => 'vagrant',
+      group   => 'vagrant',
+      mode    => '0644',
+      ensure  => present,
+      content => template('/tmp/vagrant-puppet/templates/conf.json.erb');
+
+    "index":
+      path    => "/opt/app/webapp/index.html",
+      owner   => 'vagrant',
+      group   => 'vagrant',
+      mode    => '0644',
+      ensure  => present,
+      content => template('/tmp/vagrant-puppet/templates/index.html.erb');
+
+    "app":
+      path    => "/opt/app/App.groovy",
+      owner   => 'vagrant',
+      group   => 'vagrant',
+      mode    => '0644',
+      ensure  => present,
+      content => template('/tmp/vagrant-puppet/templates/App.groovy');
+
+    "init.d":
+      path    => "/etc/init.d/vertx-app",
+      owner   => 'vagrant',
+      group   => 'vagrant',
+      mode    => "0755",
+      ensure  => present,
+      content => template('/tmp/vagrant-puppet/templates/vertx-app.sh.erb'),
+      require => [ Class['vertx'], File['config'], File['index'], File['app']];
+  }
+
+  service { "vertx-app":
+    ensure  => "running",
+    require => File["init.d"],
+  }
+
+}
+
+include deploy
