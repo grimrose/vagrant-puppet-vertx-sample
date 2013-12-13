@@ -1,1 +1,12 @@
 .vagrant/
+
+### IntelliJ ###
+*.iml
+*.ipr
+*.iws
+.idea/
+
+### Gradle ###
+# Exclude Folder List #
+.gradle/
+build/

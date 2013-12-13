@@ -1,0 +1,34 @@
+buildscript {
+    repositories {
+        jcenter()
+    }
+
+    dependencies {
+        classpath 'org.gradle.api.plugins:gradle-vagrant-plugin:0.2'
+    }
+}
+
+apply plugin: 'vagrant'
+apply plugin: 'java'
+
+version = '0.1'
+
+repositories {
+    mavenCentral()
+}
+
+vagrant {
+    boxDir = file('.')
+}
+
+import org.gradle.api.plugins.vagrant.tasks.Vagrant
+import org.gradle.api.plugins.vagrant.tasks.VagrantSsh
+
+task vagrantListsBoxes(type: Vagrant) {
+    description = 'Outputs a list of available Vagrant boxes.'
+    commands = ['box', 'list']
+}
+
+task vagrantProvision(type: Vagrant) {
+    commands = ['provision']
+}
